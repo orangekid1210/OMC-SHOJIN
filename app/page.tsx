@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import StatusButton from './StatusButton'
+import Link from 'next/link'
 
 const ITEMS_PER_PAGE = 100;
 
@@ -248,7 +249,14 @@ export default function Home() {
               </button>
             </div>
           ) : (
-            <div className="text-sm text-gray-500 italic px-3 py-1">ログインしていません</div>
+            <div className="px-3 py-1">
+            <Link 
+              href="/login" 
+              className="text-blue-600 hover:underline font-bold"
+            >
+              ログイン画面へ移動する
+            </Link>
+          </div>
           )}
         </div>
       </div>
