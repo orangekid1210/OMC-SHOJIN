@@ -1,0 +1,448 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import StatusButton from './StatusButton'
+
+const ITEMS_PER_PAGE = 100;
+
+const getDiffStyle = (diff: number) => {
+  // 10000（未定）の場合は黒の空の円
+  if (diff === 10000) return { color: '#000000', heightPercent: 0 }; 
+
+  // 色の判定
+  let color = '#ef4444'; // デフォルト赤
+  if (diff < 400) color = '#9ca3af';      // 灰
+  else if (diff < 800) color = '#b45309';  // 茶
+  else if (diff < 1200) color = '#22c55e'; // 緑
+  else if (diff < 1600) color = '#22d3ee'; // 水
+  else if (diff < 2000) color = '#2563eb'; // 青
+  else if (diff < 2400) color = '#facc15'; // 黄
+  else if (diff < 2800) color = '#f97316'; // 橙
+
+  const heightPercent = Math.min(100, Math.max(0, ((diff % 400) / 400) * 100));
+
+  return { color, heightPercent };
+};
+
+// 円内部を塗りつぶすアイコンを表示するパーツ
+const DiffIcon = ({ diff }: { diff: number }) => {
+  const { color, heightPercent } = getDiffStyle(diff);
+  const size = 20; // アイコンの大きさ
+  const radius = size / 2;
+  
+  // 水位のy座標を計算 (SVGは上原点なので、下から満たすために計算が必要)
+  const yWater = size - (heightPercent / 100) * size;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0">
+      <defs>
+        {/* 円形の切り抜きマスクを定義 */}
+        <clipPath id={`clipCircle-${diff}`}>
+          <circle cx={radius} cy={radius} r={radius - 0.5} />
+        </clipPath>
+      </defs>
+
+      {/* 背景の円 */}
+      <circle
+        cx={radius}
+        cy={radius}
+        r={radius - 1} // わずかに小さくして枠線をきれいに見せる
+        fill="transparent"
+        stroke={color}
+        strokeWidth="0.3"
+      />
+
+      {/* 円形で切り抜かれた、色付きの水位部分 */}
+      <rect
+        x="0"
+        y={yWater} // 計算した水位
+        width={size}
+        height={size} // 十分な高さ
+        fill={color}
+        clipPath={`url(#clipCircle-${diff})`} // 上で定義した円形で切り抜く
+        className="transition-all duration-500 ease-out"
+      />
+    </svg>
+  );
+};
+
+const CONTEST_FILTERS = [
+  { label: 'すべて', min: 0, max: 99999999 },
+  { label: 'OMCB', min: 99000000, max: 99999999 },
+  { label: 'OMC(無印)', min: 98000000, max: 98999999 },
+  { label: 'OMCE', min: 97000000, max: 97999999 },
+  { label: 'SOMC', min: 96000000, max: 96999999 },
+  { label: 'OMC(OLD)', min: 95000000, max: 95999999 },
+  { label: 'NF杯', min: 94000000, max: 94999999 },
+  { label: 'OMCG', min: 93000000, max: 93999999 },
+  { label: '浜松決勝', min: 92000000, max: 92999999 },
+  { label: '浜松予選', min: 91000000, max: 91999999 },
+  { label: '灘中模試', min: 90000000, max: 90999999 },
+  { label: '矢上杯', min: 89000000, max: 89999999 },
+  { label: 'OMCT', min: 88000000, max: 88999999 },
+  { label: 'TMO', min: 87000000, max: 87999999 },
+  { label: 'MathPower杯', min: 86000000, max: 86999999 },
+  { label: 'サーモン杯', min: 85000000, max: 85999999 },
+  { label: 'OMC印高杯', min: 84000000, max: 84999999 },
+  { label: 'OMC中本杯', min: 83000000, max: 83999999 },
+];
+
+const FIELD_OPTIONS = ['すべて', 'A', 'C', 'G', 'N'];
+
+export default function Home() {
+  const [problems, setProblems] = useState<any[]>([])
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(0);
+  const [filterIndex, setFilterIndex] = useState(0);
+  const [selectedField, setSelectedField] = useState('すべて');
+  const [minDiff, setMinDiff] = useState(0);
+  const [maxDiff, setMaxDiff] = useState(10000);
+  const [sortColumn, setSortColumn] = useState<'id' | 'diff'>('id');
+  const [isAsc, setIsAsc] = useState(false);
+  const [searchTag, setSearchTag] = useState(''); // タグ検索用
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const updateUsername = async () => {
+    const newName = prompt("新しいユーザー名を入力してください", user?.user_metadata?.display_name || "");
+    
+    if (!newName) return; 
+
+    const { data, error } = await supabase.auth.updateUser({
+      data: { display_name: newName }
+    });
+
+    if (error) {
+      alert("エラーが発生しました: " + error.message);
+    } else {
+      alert("ユーザー名を更新しました！");
+      // ユーザー情報を最新にするために再取得
+      const { data: { user: updatedUser } } = await supabase.auth.getUser();
+      setUser(updatedUser);
+    }
+  };
+
+  // ★ fetchData を外に出す (再利用可能にする)
+  async function fetchData() {
+    if (problems.length === 0) setLoading(true);
+
+    const from = page * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+    const currentFilter = CONTEST_FILTERS[filterIndex];
+
+    let query = supabase
+      .from('problems')
+      .select(`
+        id, title, point, field, diff, writer, url, 
+        user_progress(status),
+        problem_tags(id, tag_name)
+      `, { count: 'exact' });
+
+    query = query
+      .gte('id', currentFilter.min)
+      .lte('id', currentFilter.max)
+      .gte('diff', minDiff)
+      .lte('diff', maxDiff);
+
+    if (selectedField !== 'すべて') {
+      query = query.eq('field', selectedField);
+    }
+
+    // タグ検索フィルタ
+    if (searchTag) {
+      // 特定のタグ名を含む問題をフィルタリング
+      query = query.filter('problem_tags.tag_name', 'ilike', `%${searchTag}%`).not('problem_tags', 'is', null);
+    }
+
+    const { data, error } = await query
+      .order(sortColumn, { ascending: isAsc })
+      .order('id', { ascending: false })
+      .range(from, to);
+
+    if (!error && data) {
+      setProblems(data);
+    }
+    setLoading(false);
+  }
+
+  // ユーザー取得 (初回のみ)
+  useEffect(() => {
+    async function getUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    getUser();
+  }, []);
+
+  // データ取得 (条件変更時)
+  useEffect(() => {
+    fetchData();
+  }, [page, filterIndex, selectedField, minDiff, maxDiff, sortColumn, isAsc, searchTag]);
+
+  // ★ タグの追加・削除アクション
+  const handleTagAction = async (problemId: number, currentTags: any[]) => {
+    const tagList = currentTags.map(t => t.tag_name).join(", ");
+    const action = prompt(
+      `現在のタグ: ${tagList || "なし"}\n\n操作を入力してください:\n・新しい名前を入力 → タグを追加\n・既存の名前を入力 → そのタグを削除`
+    );
+
+    if (!action) return;
+
+    const targetTag = currentTags.find(t => t.tag_name === action.trim());
+
+    if (targetTag) {
+      // 削除
+      const { error } = await supabase.from('problem_tags').delete().eq('id', targetTag.id);
+      if (error) alert("削除に失敗しました");
+    } else {
+      // 追加
+      const { error } = await supabase.from('problem_tags').insert([
+        { problem_id: problemId, tag_name: action.trim() }
+      ]);
+      if (error) alert("追加に失敗しました (重複など)");
+    }
+    fetchData(); // 終わったら更新
+  };
+
+  const handleStatusUpdate = (problemId: string, newStatus: string) => {
+    setProblems((prev) => prev.map((p) => p.id === problemId ? { ...p, user_progress: [{ status: newStatus }] } : p));
+  };
+
+  const toggleSort = (column: 'id' | 'diff') => {
+    if (sortColumn === column) setIsAsc(!isAsc);
+    else { setSortColumn(column); setIsAsc(false); }
+    setPage(0);
+  };
+
+  if (loading) return <div className="p-8 text-black">読み込み中...</div>
+
+  return (
+    <main className="p-8 max-w-5xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-600 font-mono italic">OMC SHOJIN</h1>
+        
+        {/* ユーザー情報表示エリア */}
+        <div className="flex items-center gap-3">
+          {user ? (
+            <div className="flex items-center gap-2 bg-gray-100 pl-3 pr-2 py-1 rounded-full border border-gray-200 shadow-sm">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="text-sm font-bold text-gray-700">
+                {user.user_metadata?.display_name || user.email} 
+              </span>
+              
+              {/* 名前変更ボタン */}
+              <button 
+                onClick={updateUsername}
+                className="p-1 hover:bg-gray-200 rounded-full transition-colors group"
+                title="名前を変更"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 group-hover:text-blue-600">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500 italic px-3 py-1">ログインしていません</div>
+          )}
+        </div>
+      </div>
+      
+      {/* フィルタパネル */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm text-black">
+        {/* Contest, Field, Diff はそのまま、4列目にタグ検索を追加 */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-black text-gray-500 uppercase">Tag Search</label>
+          <input 
+            type="text" 
+            value={searchTag} 
+            onChange={(e) => { setSearchTag(e.target.value); setPage(0); }}
+            placeholder="タグ名で検索..."
+            className="bg-white border border-gray-300 text-sm rounded-lg p-2"
+          />
+        </div>
+        {/* コンテスト選択（既存） */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-black text-gray-500 uppercase">Contest</label>
+          <select 
+            value={filterIndex}
+            onChange={(e) => { setFilterIndex(Number(e.target.value)); setPage(0); }}
+            className="bg-white border border-gray-300 text-sm rounded-lg p-2"
+          >
+            {CONTEST_FILTERS.map((f, index) => (
+              <option key={f.label} value={index}>{f.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* 分野選択 */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-black text-gray-500 uppercase">Field</label>
+          <select 
+            value={selectedField}
+            onChange={(e) => { setSelectedField(e.target.value); setPage(0); }}
+            className="bg-white border border-gray-300 text-sm rounded-lg p-2"
+          >
+            {FIELD_OPTIONS.map(f => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Diff範囲指定 */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-black text-gray-500 uppercase">Difficulty Range</label>
+          <div className="flex items-center gap-2">
+            <input 
+              type="number"
+              value={minDiff}
+              onChange={(e) => { setMinDiff(Number(e.target.value)); setPage(0); }}
+              className="w-full bg-white border border-gray-300 text-sm rounded-lg p-2"
+              placeholder="Min"
+            />
+            <span className="text-gray-400">〜</span>
+            <input 
+              type="number"
+              value={maxDiff}
+              onChange={(e) => { setMaxDiff(Number(e.target.value)); setPage(0); }}
+              className="w-full bg-white border border-gray-300 text-sm rounded-lg p-2"
+              placeholder="Max"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white shadow-xl rounded-xl overflow-visible border border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200 text-black">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-black text-gray-500 uppercase">Status</th>
+              {/* Title（実質ID順）にソート機能を追加 */}
+              <th 
+                className="px-6 py-4 text-left text-xs font-black text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => toggleSort('id')}
+              >
+                Title {sortColumn === 'id' ? (isAsc ? '▲' : '▼') : ''}
+              </th>
+              {/* Diffにソート機能を追加（DiffIconの隣など、場所はお好みで） */}
+              <th 
+                className="px-6 py-4 text-left text-xs font-black text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => toggleSort('diff')}
+              >
+                Diff {sortColumn === 'diff' ? (isAsc ? '▲' : '▼') : ''}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 bg-white">
+            {problems.map((p) => {
+              const currentStatus = p.user_progress?.[0]?.status || '未挑戦';
+              const rowColor = 
+                  currentStatus === 'AC' ? 'bg-green-100' : 
+                  currentStatus === '解説AC' ? 'bg-blue-100' : 
+                  currentStatus === '挑戦中' ? 'bg-yellow-100' : 
+                  'bg-white'; // 未挑戦は白              
+
+              return (
+                  <tr 
+                    key={p.id} 
+                    className={`
+                      ${rowColor}
+                      hover:brightness-95 transition-all border-b border-gray-100
+                    `}
+                    style={{ position: 'relative', zIndex: 'auto' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.zIndex = '10')}
+                    onMouseLeave={(e) => (e.currentTarget.style.zIndex = 'auto')}
+                  >
+                    <td className="px-6 py-4 relative">
+                      <StatusButton 
+                        problemId={p.id} 
+                        initialStatus={currentStatus} 
+                        onStatusChange={(newStatus) => handleStatusUpdate(p.id, newStatus)} // 関数を渡す
+                      />
+                    </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {/* 新しい円環アイコン */}
+                      <div className="relative group cursor-help">
+                        <DiffIcon diff={p.diff} />
+                        
+                        {/* ツールチップ (ホバーで表示) */}
+                        <div className="absolute left-8 top-0 hidden group-hover:block z-50 w-40 p-3 bg-gray-900/95 text-white text-xs rounded-lg shadow-2xl backdrop-blur-sm border border-gray-700">
+                          <div className="font-bold border-b border-gray-700 pb-1 mb-2 text-blue-400">Problem Info</div>
+                          <div className="space-y-1">
+                            <p>
+                              <span className="text-gray-400">Diff:</span>{' '}
+                              <span className="font-mono font-bold">
+                                {p.diff === 10000 ? '-' : p.diff} {/* 10000なら - 、それ以外なら数字を表示 */}
+                              </span>
+                            </p>
+                            <p><span className="text-gray-400">Point:</span> {p.point}</p>
+                            <p><span className="text-gray-400">Field:</span> {p.field}</p>
+                            <p><span className="text-gray-400">Writer:</span> {p.writer}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* タイトルとリンク */}
+                      <div>
+                        <a 
+                          href={p.url || '#'} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm font-bold text-gray-900 hover:text-blue-600 hover:underline transition-all"
+                        >
+                          {p.title}
+                        </a>
+                        {/* タグボタン */}
+                        <button 
+                          onClick={() => handleTagAction(p.id, p.problem_tags || [])}
+                          className="text-[10px] bg-gray-100 hover:bg-blue-200 px-2 py-0.5 rounded text-gray-500 transition-colors"
+                        >
+                          🏷️ {p.problem_tags?.length || 0}
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right font-mono font-bold text-sm text-gray-700">
+                    {p.diff === 10000 ? '-' : p.diff}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex items-center justify-center gap-4 mt-8">
+        <button
+          onClick={() => setPage((p) => Math.max(0, p - 1))}
+          disabled={page === 0}
+          className="px-4 py-2 bg-white border rounded-lg shadow-sm disabled:opacity-30 hover:bg-gray-50 transition-colors"
+        >
+          ← 前の100件
+        </button>
+        
+        <span className="font-bold text-gray-700">
+          PAGE {page + 1}
+        </span>
+
+        <button
+          onClick={() => setPage((p) => p + 1)}
+          disabled={problems.length < ITEMS_PER_PAGE}
+          className="px-4 py-2 bg-white border rounded-lg shadow-sm disabled:opacity-30 hover:bg-gray-50 transition-colors"
+        >
+          次の100件 →
+        </button>
+      </div>
+      
+      <p className="text-center text-gray-400 text-xs mt-4">
+        表示中: {page * ITEMS_PER_PAGE + 1} 〜 {page * ITEMS_PER_PAGE + problems.length} 件目
+      </p>      
+    </main>
+  )
+}
