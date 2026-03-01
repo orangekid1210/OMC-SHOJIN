@@ -87,6 +87,7 @@ const CONTEST_FILTERS = [
   { label: 'サーモン杯', min: 85000000, max: 85999999 },
   { label: 'OMC印高杯', min: 84000000, max: 84999999 },
   { label: 'OMC中本杯', min: 83000000, max: 83999999 },
+  { label: 'その他', min: 0, max: 999999 },
 ];
 
 const FIELD_OPTIONS = ['すべて', 'A', 'C', 'G', 'N'];
