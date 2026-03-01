@@ -104,6 +104,8 @@ export default function Home() {
   const [isAsc, setIsAsc] = useState(false);
   const [searchTag, setSearchTag] = useState(''); // タグ検索用
   const [searchTitle, setSearchTitle] = useState('') // タイトル検索用の状態
+  const [totalCount, setTotalCount] = useState(0);
+  const [resolvedCount, setResolvedCount] = useState(0);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -136,6 +138,31 @@ export default function Home() {
     const from = page * ITEMS_PER_PAGE;
     const to = from + ITEMS_PER_PAGE - 1;
     const currentFilter = CONTEST_FILTERS[filterIndex];
+    // 共通のフィルタ条件を関数化すると楽です
+    const applyFilters = (q: any) => {
+      let res = q.gte('id', currentFilter.min).lte('id', currentFilter.max)
+                .gte('diff', minDiff).lte('diff', maxDiff);
+      if (selectedField !== 'すべて') res = res.eq('field', selectedField);
+      if (searchTitle) res = res.ilike('title', `%${searchTitle}%`);
+      if (searchTag) res = res.filter('problem_tags.tag_name', 'ilike', `%${searchTag}%`).not('problem_tags', 'is', null);
+      return res;
+    };
+
+    // ① 条件に合う「全問題数」をカウント
+    const { count: allCount } = await applyFilters(
+      supabase.from('problems').select('*', { count: 'exact', head: true })
+    );
+
+    // ② 条件に合う問題の中で「AC or 解説AC」の数をカウント
+    // user_progress を内部結合(inner: true)して、ステータスがAC系のものだけを数える
+    const { count: solvedCount } = await applyFilters(
+      supabase.from('problems').select('id, user_progress!inner(status)', { count: 'exact', head: true })
+    )
+    .in('user_progress.status', ['AC', '解説AC'])
+    .eq('user_progress.user_id', user?.id); // 自分の回答だけ
+
+    setTotalCount(allCount || 0);
+    setResolvedCount(solvedCount || 0);
 
     let query = supabase
       .from('problems')
@@ -236,7 +263,7 @@ export default function Home() {
   const currentResolved = currentAC + currentExplanationAC;
 
   // 2. 達成率の計算（0除算を防ぐ）
-  const currentRate = currentTotal > 0 ? Math.round((currentResolved / currentTotal) * 100) : 0;
+  const currentRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0;
 
   return (
     <main className="p-8 max-w-5xl mx-auto">
