@@ -112,6 +112,28 @@ export default function Home() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
+  // 1. Stateを追加
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [isTagsOpen, setIsTagsOpen] = useState(false);
+
+  // 2. タグ一覧を取得する関数
+  const fetchAllTags = async () => {
+    const { data, error } = await supabase
+      .from('problem_tags')
+      .select('tag_name');
+
+    if (!error && data) {
+      // 重複を排除してソート
+      const uniqueTags = Array.from(new Set(data.map(t => t.tag_name))).sort();
+      setAllTags(uniqueTags);
+    }
+  };
+
+  // 3. 初回読み込み時に実行
+  useEffect(() => {
+    fetchAllTags();
+  }, []);
+
   const updateUsername = async () => {
     const newName = prompt("新しいユーザー名を入力してください", user?.user_metadata?.display_name || "");
     
@@ -349,6 +371,56 @@ export default function Home() {
             </div>
           )}
         </div>
+
+      {/* タグ一覧エリア */}
+      <div className="mb-6 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex justify-between items-center mb-3">
+          <label className="text-xs font-black text-gray-500 uppercase tracking-wider flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 5-6 3 6 3-6 3"></path></svg>
+            Quick Tag Filter
+          </label>
+          
+          {/* 展開ボタン */}
+          <button 
+            onClick={() => setIsTagsOpen(!isTagsOpen)}
+            className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1"
+          >
+            {isTagsOpen ? '閉じる ▲' : 'もっと見る ▼'}
+          </button>
+        </div>
+
+        <div className="relative">
+          <div 
+            className={`flex flex-wrap gap-2 transition-all duration-500 ease-in-out overflow-hidden ${
+              isTagsOpen ? 'max-h-[1000px]' : 'max-h-[40px]' // 40pxはおよそ1~2行分
+            }`}
+          >
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => {
+                  setSearchTag(searchTag === tag ? '' : tag);
+                  setPage(0);
+                }}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all border ${
+                  searchTag === tag
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105'
+                    : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-blue-400 hover:bg-blue-50'
+                }`}
+              >
+                # {tag}
+              </button>
+            ))}
+            
+            {allTags.length === 0 && <span className="text-gray-400 text-xs italic">No tags found.</span>}
+          </div>
+
+          {/* 閉じている時のグラデーション隠し */}
+          {!isTagsOpen && allTags.length > 10 && (
+            <div className="absolute bottom-0 left-0 w-full h-4 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+          )}
+        </div>
+      </div>
 
       {/* フィルタパネル */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm text-black">
