@@ -267,6 +267,7 @@ export default function Home() {
 
   return (
     <main className="p-8 max-w-5xl mx-auto">
+      {/* 1. ヘッダー部分 */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-blue-600 font-mono italic">OMC SHOJIN</h1>
         
@@ -304,9 +305,6 @@ export default function Home() {
         </div>
       </div>
       
-      {/* フィルタパネル */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm text-black">
-        {/* 絞り込み条件下の達成率表示 */}
         <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 shadow-sm text-black">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             
@@ -351,6 +349,10 @@ export default function Home() {
             </div>
           )}
         </div>
+
+      {/* フィルタパネル */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm text-black">
+        {/* 絞り込み条件下の達成率表示 */}
         {/* タイトル検索入力欄 */}
         <div className="flex-1">
           <label className="text-xs font-black text-gray-500 uppercase">Title Search</label>
