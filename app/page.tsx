@@ -220,7 +220,7 @@ export default function Home() {
     setPage(0);
   };
 
-  if (loading) return <div className="p-8 text-black">読み込み中...</div>
+  {loading && <span>更新中...</span>}
 
   return (
     <main className="p-8 max-w-5xl mx-auto">
