@@ -190,7 +190,7 @@ export default function Home() {
   // データ取得 (条件変更時)
   useEffect(() => {
     fetchData();
-  }, [page, filterIndex, selectedField, minDiff, maxDiff, sortColumn, isAsc, searchTag]);
+  }, [page, filterIndex, selectedField, minDiff, maxDiff, sortColumn, isAsc, searchTag, searchTitle]);
 
   // ★ タグの追加・削除アクション
   const handleTagAction = async (problemId: number, currentTags: any[]) => {
