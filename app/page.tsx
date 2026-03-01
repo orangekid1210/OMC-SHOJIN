@@ -276,7 +276,7 @@ export default function Home() {
           <div className="relative">
             <input
               type="text"
-              placeholder="問題名を入力（例: 001-A）"
+              placeholder="問題名を入力（例: OMC001(A)）"
               value={searchTitle}
               onChange={(e) => setSearchTitle(e.target.value)}
               className="w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-black"
@@ -301,6 +301,14 @@ export default function Home() {
             placeholder="タグ名で検索..."
             className="bg-white border border-gray-300 text-sm rounded-lg p-2"
           />
+          {searchTag && (
+            <button 
+              onClick={() => setSearchTag('')}
+              className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          )}
         </div>
         {/* コンテスト選択（既存） */}
         <div className="flex flex-col gap-1">
