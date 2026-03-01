@@ -318,7 +318,7 @@ export default function Home() {
                   <h2 className="text-3xl font-black text-gray-800">{currentRate}%</h2>
                 </div>
                 <div className="text-right text-sm font-bold text-gray-500">
-                  {currentResolved} / {currentTotal} <span className="text-xs font-normal text-gray-400">problems</span>
+                  {resolvedCount} / {totalCount} <span className="text-xs font-normal text-gray-400">problems</span>
                 </div>
               </div>
               <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden shadow-inner">
