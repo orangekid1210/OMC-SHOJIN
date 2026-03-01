@@ -272,7 +272,7 @@ export default function Home() {
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm text-black">
         {/* タイトル検索入力欄 */}
         <div className="flex-1">
-          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Title Search</label>
+          <label className="text-xs font-black text-gray-500 uppercase">Title Search</label>
           <div className="relative">
             <input
               type="text"
