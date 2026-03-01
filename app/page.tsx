@@ -229,6 +229,15 @@ export default function Home() {
 
   {loading && <span>更新中...</span>}
 
+  // 1. 現在表示されているリスト（絞り込み後）から統計を計算
+  const currentTotal = problems.length;
+  const currentAC = problems.filter(p => p.user_progress?.[0]?.status === 'AC').length;
+  const currentExplanationAC = problems.filter(p => p.user_progress?.[0]?.status === '解説AC').length;
+  const currentResolved = currentAC + currentExplanationAC;
+
+  // 2. 達成率の計算（0除算を防ぐ）
+  const currentRate = currentTotal > 0 ? Math.round((currentResolved / currentTotal) * 100) : 0;
+
   return (
     <main className="p-8 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -270,6 +279,51 @@ export default function Home() {
       
       {/* フィルタパネル */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm text-black">
+        {/* 絞り込み条件下の達成率表示 */}
+        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 shadow-sm text-black">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            
+            {/* 左側：大きな数字とプログレスバー */}
+            <div className="flex-1 w-full">
+              <div className="flex justify-between items-end mb-2">
+                <div>
+                  <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">Filtered Progress</span>
+                  <h2 className="text-3xl font-black text-gray-800">{currentRate}%</h2>
+                </div>
+                <div className="text-right text-sm font-bold text-gray-500">
+                  {currentResolved} / {currentTotal} <span className="text-xs font-normal text-gray-400">problems</span>
+                </div>
+              </div>
+              <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden shadow-inner">
+                <div 
+                  className="bg-blue-600 h-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(37,99,235,0.5)]" 
+                  style={{ width: `${currentRate}%` }}
+                />
+              </div>
+            </div>
+
+            {/* 右側：詳細内訳 */}
+            <div className="flex gap-4 border-l border-gray-200 pl-6 hidden md:flex">
+              <div className="text-center">
+                <div className="text-xs font-bold text-gray-400 uppercase mb-1">Pure AC</div>
+                <div className="text-xl font-black text-green-600">{currentAC}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-gray-400 uppercase mb-1">Explanation</div>
+                <div className="text-xl font-black text-blue-500">{currentExplanationAC}</div>
+              </div>
+            </div>
+
+          </div>
+          
+          {/* 絞り込み内容の補足（おまけ） */}
+          {(searchTag || searchTitle) && (
+            <div className="mt-4 pt-4 border-t border-blue-100 flex gap-2 overflow-x-auto">
+              {searchTag && <span className="text-[10px] bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full font-bold">Tag: {searchTag}</span>}
+              {searchTitle && <span className="text-[10px] bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full font-bold">Title: {searchTitle}</span>}
+            </div>
+          )}
+        </div>
         {/* タイトル検索入力欄 */}
         <div className="flex-1">
           <label className="text-xs font-black text-gray-500 uppercase">Title Search</label>
