@@ -7,8 +7,6 @@ import Link from 'next/link'
 
 const ITEMS_PER_PAGE = 100;
 
-const [searchTitle, setSearchTitle] = useState('') // タイトル検索用の状態
-
 const getDiffStyle = (diff: number) => {
   // 10000（未定）の場合は黒の空の円
   if (diff === 10000) return { color: '#000000', heightPercent: 0 }; 
@@ -105,6 +103,7 @@ export default function Home() {
   const [sortColumn, setSortColumn] = useState<'id' | 'diff'>('id');
   const [isAsc, setIsAsc] = useState(false);
   const [searchTag, setSearchTag] = useState(''); // タグ検索用
+  const [searchTitle, setSearchTitle] = useState('') // タイトル検索用の状態
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -271,15 +270,26 @@ export default function Home() {
       
       {/* フィルタパネル */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm text-black">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-black text-gray-500 uppercase">Contest Search</label>
-          <input 
-            type="text"
-            placeholder="問題タイトルで検索..."
-            value={searchTitle}
-            onChange={(e) => setSearchTitle(e.target.value)}
-            className="border p-2 rounded-md w-full md:w-64 text-black"
-          />
+        {/* タイトル検索入力欄 */}
+        <div className="flex-1">
+          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Title Search</label>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="問題名を入力（例: 001-A）"
+              value={searchTitle}
+              onChange={(e) => setSearchTitle(e.target.value)}
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-black"
+            />
+            {searchTitle && (
+              <button 
+                onClick={() => setSearchTitle('')}
+                className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
         {/* Contest, Field, Diff はそのまま、4列目にタグ検索を追加 */}
         <div className="flex flex-col gap-1">
