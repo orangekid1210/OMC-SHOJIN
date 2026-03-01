@@ -7,6 +7,8 @@ import Link from 'next/link'
 
 const ITEMS_PER_PAGE = 100;
 
+const [searchTitle, setSearchTitle] = useState('') // タイトル検索用の状態
+
 const getDiffStyle = (diff: number) => {
   // 10000（未定）の場合は黒の空の円
   if (diff === 10000) return { color: '#000000', heightPercent: 0 }; 
@@ -154,6 +156,12 @@ export default function Home() {
       query = query.eq('field', selectedField);
     }
 
+    // 1. タイトル検索フィルタ（追加！）
+    if (searchTitle) {
+      // 'title' カラムに searchTitle の文字が含まれているかチェック
+      query = query.ilike('title', `%${searchTitle}%`);
+    }
+
     // タグ検索フィルタ
     if (searchTag) {
       // 特定のタグ名を含む問題をフィルタリング
@@ -263,6 +271,16 @@ export default function Home() {
       
       {/* フィルタパネル */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm text-black">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-black text-gray-500 uppercase">Contest Search</label>
+          <input 
+            type="text"
+            placeholder="問題タイトルで検索..."
+            value={searchTitle}
+            onChange={(e) => setSearchTitle(e.target.value)}
+            className="border p-2 rounded-md w-full md:w-64 text-black"
+          />
+        </div>
         {/* Contest, Field, Diff はそのまま、4列目にタグ検索を追加 */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-black text-gray-500 uppercase">Tag Search</label>
