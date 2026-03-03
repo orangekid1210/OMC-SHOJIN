@@ -107,7 +107,16 @@ export default function Home() {
   const [searchTitle, setSearchTitle] = useState('') // タイトル検索用の状態
   const [totalCount, setTotalCount] = useState(0);
   const [resolvedCount, setResolvedCount] = useState(0);
-
+  const handleLogout = async () => {
+  const { error } = await supabase.auth.signOut();
+    if (error) {
+      alert("ログアウトに失敗しました: " + error.message);
+    } else {
+      // ユーザー状態をクリアして、ログイン画面へリダイレクト
+      setUser(null);
+      window.location.href = "/"; 
+    }
+  };
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -153,6 +162,18 @@ export default function Home() {
       setUser(updatedUser);
     }
   };
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+      } else if (session) {
+        setUser(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // ★ fetchData を外に出す (再利用可能にする)
   async function fetchData() {
@@ -297,33 +318,29 @@ export default function Home() {
         {/* ユーザー情報表示エリア */}
         <div className="flex items-center gap-3">
           {user ? (
-            <div className="flex items-center gap-2 bg-gray-100 pl-3 pr-2 py-1 rounded-full border border-gray-200 shadow-sm">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-sm font-bold text-gray-700">
-                {user.user_metadata?.display_name || user.email} 
-              </span>
-              
-              {/* 名前変更ボタン */}
+            <div className="flex items-center gap-4 bg-gray-100 pl-4 pr-2 py-1.5 rounded-full border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span className="text-sm font-bold text-gray-700">
+                  {user.user_metadata?.display_name || user.email}
+                </span>
+              </div>
+
+              {/* ログアウトボタン */}
               <button 
-                onClick={updateUsername}
-                className="p-1 hover:bg-gray-200 rounded-full transition-colors group"
-                title="名前を変更"
+                onClick={handleLogout}
+                className="bg-white hover:bg-red-50 text-red-500 text-xs font-bold py-1 px-3 rounded-full border border-red-200 transition-all hover:shadow-sm active:scale-95"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 group-hover:text-blue-600">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
+                ログアウト
               </button>
             </div>
           ) : (
-            <div className="px-3 py-1">
             <Link 
               href="/login" 
-              className="text-blue-600 hover:underline font-bold"
+              className="text-blue-600 hover:underline font-bold text-sm"
             >
-              ログイン画面へ移動する
+              ログイン画面へ移動
             </Link>
-          </div>
           )}
         </div>
       </div>
@@ -594,7 +611,7 @@ export default function Home() {
                           href={p.url || '#'} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-sm font-bold text-gray-900 hover:text-blue-600 hover:underline transition-all"
+                          className="text-sm font-bold text-blue-600 hover:text-blue-800 underline decoration-blue-200 hover:decoration-blue-500 underline-offset-4 transition-all"
                         >
                           {p.title}
                         </a>
