@@ -300,14 +300,21 @@ export default function Home() {
 
   {loading && <span>更新中...</span>}
 
-  // 1. 現在表示されているリスト（絞り込み後）から統計を計算
-  const currentTotal = problems.length;
-  const currentAC = problems.filter(p => p.user_progress?.[0]?.status === 'AC').length;
-  const currentExplanationAC = problems.filter(p => p.user_progress?.[0]?.status === '解説AC').length;
-  const currentResolved = currentAC + currentExplanationAC;
+  // --- 統計計算エリア ---
+  // 1. 各ステータスのカウント（現在の表示リストから抽出）
+  const acCount = problems.filter(p => p.user_progress?.[0]?.status === 'AC').length;
+  const expCount = problems.filter(p => p.user_progress?.[0]?.status === '解説AC').length;
+  const tryingCount = problems.filter(p => p.user_progress?.[0]?.status === '挑戦中').length;
 
-  // 2. 達成率の計算（0除算を防ぐ）
+  // 2. プログレスバー用の割合計算（分母は totalCount）
+  const totalForBar = totalCount || 1; 
+  const acRate = (acCount / totalForBar) * 100;
+  const expRate = (expCount / totalForBar) * 100;
+  const tryingRate = (tryingCount / totalForBar) * 100;
+
+  // 3. メイン達成率 (AC + 解説AC) / 全ての問題
   const currentRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0;
+  // --- 統計計算エリア終了 ---
 
   return (
     <main className="p-8 max-w-5xl mx-auto">
