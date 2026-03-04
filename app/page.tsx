@@ -503,21 +503,6 @@ export default function Home() {
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-black text-gray-500 uppercase tracking-wider flex items-center gap-1">
-            <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-            Status Filter
-          </label>
-          <select 
-            value={selectedStatus}
-            onChange={(e) => { setSelectedStatus(e.target.value); setPage(0); }}
-            className="bg-white border border-gray-300 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none text-black font-bold"
-          >
-            {STATUS_OPTIONS.map(s => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
           <label className="text-xs font-black text-gray-500 uppercase">Tag Search</label>
           <input 
             type="text" 
@@ -534,6 +519,22 @@ export default function Home() {
               ✕
             </button>
           )}
+        </div>
+        {/* status filter */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-black text-gray-500 uppercase tracking-wider flex items-center gap-1">
+            <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+            Status Filter
+          </label>
+          <select 
+            value={selectedStatus}
+            onChange={(e) => { setSelectedStatus(e.target.value); setPage(0); }}
+            className="bg-white border border-gray-300 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none text-black"
+          >
+            {STATUS_OPTIONS.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
         </div>
         {/* コンテスト選択（既存） */}
         <div className="flex flex-col gap-1">
