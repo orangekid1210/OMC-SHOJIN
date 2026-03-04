@@ -523,8 +523,6 @@ export default function Home() {
         {/* status filter */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-black text-gray-500 uppercase tracking-wider flex items-center gap-1">
-            <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-            Status Filter
           </label>
           <select 
             value={selectedStatus}
