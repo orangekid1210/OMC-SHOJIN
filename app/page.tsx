@@ -121,6 +121,10 @@ export default function Home() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+  
+  const [selectedStatus, setSelectedStatus] = useState('すべて');
+
+  const STATUS_OPTIONS = ['すべて', 'AC', '解説AC', '挑戦中', '未挑戦'];
 
   // 1. Stateを追加
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -238,6 +242,17 @@ export default function Home() {
       query = query.filter('problem_tags.tag_name', 'ilike', `%${searchTag}%`).not('problem_tags', 'is', null);
     }
 
+    if (selectedStatus !== 'すべて') {
+      if (selectedStatus === '未挑戦') {
+        // user_progress が存在しない、または status が空のものを探す
+        // ※内部結合ではなく外部結合のフィルタリングが必要な場合があります
+        query = query.is('user_progress', null);
+      } else {
+        // 特定のステータスでフィルタ（!inner を使うと結合先で絞り込めます）
+        query = query.eq('user_progress.status', selectedStatus).not('user_progress', 'is', null);
+      }
+    }
+
     const { data, error } = await query
       .order(sortColumn, { ascending: isAsc })
       .order('id', { ascending: false })
@@ -261,7 +276,7 @@ export default function Home() {
   // データ取得 (条件変更時)
   useEffect(() => {
     fetchData();
-  }, [page, filterIndex, selectedField, minDiff, maxDiff, sortColumn, isAsc, searchTag, searchTitle]);
+  }, [page, filterIndex, selectedField, minDiff, maxDiff, sortColumn, isAsc, searchTag, searchTitle, selectedStatus]);
 
   // ★ タグの追加・削除アクション
   const handleTagAction = async (problemId: number, currentTags: any[]) => {
@@ -487,7 +502,21 @@ export default function Home() {
             )}
           </div>
         </div>
-        {/* Contest, Field, Diff はそのまま、4列目にタグ検索を追加 */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-black text-gray-500 uppercase tracking-wider flex items-center gap-1">
+            <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+            Status Filter
+          </label>
+          <select 
+            value={selectedStatus}
+            onChange={(e) => { setSelectedStatus(e.target.value); setPage(0); }}
+            className="bg-white border border-gray-300 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none text-black font-bold"
+          >
+            {STATUS_OPTIONS.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs font-black text-gray-500 uppercase">Tag Search</label>
           <input 
