@@ -300,8 +300,7 @@ export default function Home() {
 
   {loading && <span>更新中...</span>}
 
-  // --- 統計計算エリア ---
-  // 1. 各ステータスのカウント（現在の表示リストから抽出）
+  // 1. 各ステータスのカウント（現在の表示リストから割合を計算）
   const acCount = problems.filter(p => p.user_progress?.[0]?.status === 'AC').length;
   const expCount = problems.filter(p => p.user_progress?.[0]?.status === '解説AC').length;
   const tryingCount = problems.filter(p => p.user_progress?.[0]?.status === '挑戦中').length;
@@ -314,7 +313,6 @@ export default function Home() {
 
   // 3. メイン達成率 (AC + 解説AC) / 全ての問題
   const currentRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0;
-  // --- 統計計算エリア終了 ---
 
   return (
     <main className="p-8 max-w-5xl mx-auto">
@@ -366,10 +364,25 @@ export default function Home() {
                   {resolvedCount} / {totalCount} <span className="text-xs font-normal text-gray-400">problems</span>
                 </div>
               </div>
-              <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden shadow-inner">
+              {/* 積み上げプログレスバー */}
+              <div className="w-full bg-gray-200 h-5 rounded-full overflow-hidden shadow-inner flex border border-gray-300">
+                {/* AC: 緑 */}
                 <div 
-                  className="bg-blue-600 h-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(37,99,235,0.5)]" 
-                  style={{ width: `${currentRate}%` }}
+                  className="bg-green-500 h-full transition-all duration-1000 ease-out border-r border-white/20" 
+                  style={{ width: `${acRate}%`, minWidth: acRate > 0 ? '4px' : '0' }}
+                  title={`AC: ${acCount}問`}
+                />
+                {/* 解説AC: 青 */}
+                <div 
+                  className="bg-blue-500 h-full transition-all duration-1000 ease-out border-r border-white/20" 
+                  style={{ width: `${expRate}%`, minWidth: expRate > 0 ? '4px' : '0' }}
+                  title={`解説AC: ${expCount}問`}
+                />
+                {/* 挑戦中: 黄色 */}
+                <div 
+                  className="bg-yellow-400 h-full transition-all duration-1000 ease-out" 
+                  style={{ width: `${tryingRate}%`, minWidth: tryingRate > 0 ? '4px' : '0' }}
+                  title={`挑戦中: ${tryingCount}問`}
                 />
               </div>
             </div>
@@ -378,14 +391,17 @@ export default function Home() {
             <div className="flex gap-4 border-l border-gray-200 pl-6 hidden md:flex">
               <div className="text-center">
                 <div className="text-xs font-bold text-gray-400 uppercase mb-1">Pure AC</div>
-                <div className="text-xl font-black text-green-600">{currentAC}</div>
+                <div className="text-xl font-black text-green-600">{acCount}</div>
               </div>
               <div className="text-center">
                 <div className="text-xs font-bold text-gray-400 uppercase mb-1">Explanation</div>
-                <div className="text-xl font-black text-blue-500">{currentExplanationAC}</div>
+                <div className="text-xl font-black text-blue-500">{expCount}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-gray-400 uppercase mb-1">Trying</div>
+                <div className="text-xl font-black text-yellow-500">{tryingCount}</div>
               </div>
             </div>
-
           </div>
           
           {/* 絞り込み内容の補足（おまけ） */}
