@@ -711,7 +711,17 @@ export default function Home() {
       
       <p className="text-center text-gray-400 text-xs mt-4">
         表示中: {page * ITEMS_PER_PAGE + 1} 〜 {page * ITEMS_PER_PAGE + problems.length} 件目
-      </p>      
+      </p>
+      {/* 免責事項エリア */}
+      <div className="mt-12 pt-8 border-t border-gray-200 text-center space-y-2">
+        <p className="text-[10px] text-gray-400 leading-relaxed max-w-2xl mx-auto">
+          本サイトは有志による非公式ファンサイトです。掲載されている問題の著作権はOnlineMathContest運営に帰属します。<br />
+          本サイトの利用により生じた損害や、コンテスト等の規約違反に関する責任について、開発者および運営は一切の責任を負いません。ルールを守って精進に活用してください。
+        </p>
+        <p className="text-[10px] text-gray-300 font-mono">
+          © 2026 OMC SHOJIN (Unofficial)
+        </p>
+      </div>
     </main>
-  )
-}
+  );
+} 
