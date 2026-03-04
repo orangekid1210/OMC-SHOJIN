@@ -529,7 +529,7 @@ export default function Home() {
           <select 
             value={selectedStatus}
             onChange={(e) => { setSelectedStatus(e.target.value); setPage(0); }}
-            className="bg-white border border-gray-300 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none text-black"
+            className="bg-white border border-gray-300 text-sm rounded-lg p-2"
           >
             {STATUS_OPTIONS.map(s => (
               <option key={s} value={s}>{s}</option>
