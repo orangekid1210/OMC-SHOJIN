@@ -124,6 +124,27 @@ export default function Home() {
   
   const [selectedStatus, setSelectedStatus] = useState('すべて');
 
+const handleDeleteAccount = async () => {
+  const confirmed = window.confirm(
+    "本当にアカウントを削除しますか？\nこれまでの精進データ（AC状況やタグ）はすべて消去され、復元できません。"
+  );
+
+  if (confirmed) {
+    // 1. 作成したRPC関数を呼び出す
+    const { error } = await supabase.rpc('delete_user');
+
+    if (error) {
+      alert("削除に失敗しました: " + error.message);
+    } else {
+      alert("アカウントを削除しました。ご利用ありがとうございました。");
+      // 2. セッションをクリアしてトップへ
+      await supabase.auth.signOut();
+      setUser(null);
+      window.location.href = "/";
+    }
+  }
+};
+
   const STATUS_OPTIONS = ['すべて', 'AC', '解説AC', '挑戦中', '未挑戦'];
 
   // 1. Stateを追加
@@ -364,7 +385,6 @@ export default function Home() {
           )}
         </div>
       </div>
-      
         <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 shadow-sm text-black">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             
@@ -712,15 +732,19 @@ export default function Home() {
       <p className="text-center text-gray-400 text-xs mt-4">
         表示中: {page * ITEMS_PER_PAGE + 1} 〜 {page * ITEMS_PER_PAGE + problems.length} 件目
       </p>
-      {/* 免責事項エリア */}
-      <div className="mt-12 pt-8 border-t border-gray-200 text-center space-y-2">
-        <p className="text-[10px] text-gray-400 leading-relaxed max-w-2xl mx-auto">
-          本サイトは有志による非公式ファンサイトです。掲載されている問題の著作権はOnlineMathContest運営に帰属します。<br />
-          本サイトの利用により生じた損害や、コンテスト等の規約違反に関する責任について、開発者および運営は一切の責任を負いません。ルールを守って精進に活用してください。
-        </p>
-        <p className="text-[10px] text-gray-300 font-mono">
-          © 2026 OMC SHOJIN (Unofficial)
-        </p>
+      {/* フッター・アカウント削除 */}
+      <div className="mt-12 text-center space-y-4">
+        <button onClick={handleDeleteAccount} className="text-[10px] text-gray-400 hover:text-red-500 underline">アカウントを完全に削除する</button>
+        {/* 免責事項エリア */}
+        <div className="mt-12 pt-8 border-t border-gray-200 text-center space-y-2">
+          <p className="text-[10px] text-gray-400 leading-relaxed max-w-2xl mx-auto">
+            本サイトは有志による非公式ファンサイトです。掲載されている問題の著作権はOnlineMathContest運営に帰属します。<br />
+            本サイトの利用により生じた損害や、コンテスト等の規約違反に関する責任について、開発者および運営は一切の責任を負いません。ルールを守って精進に活用してください。
+          </p>
+          <p className="text-[10px] text-gray-300 font-mono">
+            © 2026 OMC SHOJIN (Unofficial)
+          </p>
+        </div>
       </div>
     </main>
   );
