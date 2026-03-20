@@ -20,7 +20,6 @@ export default function LoginPage() {
       return
     }
 
-    // --- 修正開始 ---
     try {
       const response = await fetch('/auth/signup', {
         method: 'POST',

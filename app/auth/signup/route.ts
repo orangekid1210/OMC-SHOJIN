@@ -48,16 +48,20 @@ export async function POST(request: Request) {
     // 2. Resendでカスタムメールを送信
     // Supabaseが生成した「認証用リンク」を取得します
     const authData = data as any;
-    const confirmLink = authData.properties?.action_link 
-    || `${origin}/auth/callback?code=${data.user?.id}`;
+    let confirmLink = authData.properties?.action_link;
+
+    // もし action_link が取れない場合の最終手段（OTP方式への切り替え用リンク）
+    if (!confirmLink) {
+      confirmLink = `${origin}/auth/callback?code=${data.user?.id}`; 
+    }
 
     const { error: resendError } = await resend.emails.send({
       from: 'OMC Shojin <onboarding@resend.dev>', // 独自ドメインがない間はこのまま
       to: email,
-      subject: '【OMC精進】メールアドレスの確認',
+      subject: '【OMC SHOJIN】メールアドレスの確認',
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 20px auto;">
-          <h2>OMC精進へようこそ！</h2>
+          <h2>OMC SHOJINへようこそ！</h2>
           <p>登録を完了するには、以下のボタンをクリックしてメールアドレスを認証してください。</p>
           <div style="margin: 30px 0;">
             <a href="${confirmLink}" 
