@@ -20,19 +20,32 @@ export default function LoginPage() {
       return
     }
 
-    const { error } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: { 
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        // メタデータとしてユーザー名を保存
-        data: {
-          display_name: displayName
-        }
+    // --- 修正開始 ---
+    try {
+      const response = await fetch('/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email, 
+          password,
+          displayName // ユーザー名も一緒に送信
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(result.message || '確認メールを送信しました！Resendの登録メールを確認してください。');
+      } else {
+        alert(`エラー: ${result.error}`);
       }
-    })
-    if (error) alert(error.message)
-    else alert('確認メールを送りました。届いたメールのリンクをクリックしてください。')
+    } catch (err) {
+      console.error(err);
+      alert('通信エラーが発生しました。');
+    }
+    // --- 修正終了 ---
   }
 
   const handleSignIn = async () => {

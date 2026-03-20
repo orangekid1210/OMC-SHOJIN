@@ -5,10 +5,10 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  // 認証後のリダイレクト先（デフォルトはトップページ）
   const next = searchParams.get('next') ?? '/'
 
   if (code) {
-    // 【重要】ここで await を追加して cookieStore を確定させる
     const cookieStore = await cookies()
     
     const supabase = createServerClient(
@@ -20,29 +20,24 @@ export async function GET(request: Request) {
             return cookieStore.get(name)?.value
           },
           set(name: string, value: string, options: CookieOptions) {
-            // Promiseの状態なので、ここでのセットはNext.jsが内部でハンドルします
-            try {
-              cookieStore.set({ name, value, ...options })
-            } catch (error) {
-              // サーバーコンポーネント内でのセット失敗は無視してOKな場合が多いです
-            }
+            cookieStore.set({ name, value, ...options })
           },
           remove(name: string, options: CookieOptions) {
-            try {
-              cookieStore.set({ name, value: '', ...options })
-            } catch (error) {
-              // 同上
-            }
+            cookieStore.set({ name, value: '', ...options })
           },
         },
       }
     )
-    
+
+    // 認可コードをセッションに交換してログイン状態にする
     const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
     if (!error) {
+      // 成功したら指定のページへ
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
+  // エラーが発生した場合（リンク切れなど）
   return NextResponse.redirect(`${origin}/login?error=auth-code-error`)
 }
